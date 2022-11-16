@@ -1,0 +1,6 @@
+
+/tmp/
+*.orig
+*.o
+*.so
+/build/
