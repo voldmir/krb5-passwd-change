@@ -1,55 +1,115 @@
-
-#import sys
-#import traceback
+# import sys
+# import traceback
 # from pprint import pprint
-import os
-from datetime import datetime, date, timedelta
+# from datetime import datetime, date, timedelta
+import json
 from lib.base import Base
-from lib.krb5creds import Krb5Creds
-from flask import jsonify, abort, session, request, render_template
-import logging
-
-app = Base(__name__, path_app=os.path.abspath(os.path.dirname(__file__)))
-
-# print(app.secret_key)
+from flask import jsonify, abort, session, request, render_template, redirect
+import os
 
 
-@app.route('/api/username', methods=['POST', 'PATCH', 'PUT'])
-def init_creds_password():
-    if request.method == 'POST':
-        if 'username' in session and 'password' in session:
-            return jsonify((0, "Ok"))
-        else:
-            session['username'] = request.form.get('username')
-            session['password'] = request.form.get('password')
-
-        return jsonify(Krb5Creds(session['username'], session['password']).init_creds_password())
-
-    if request.method == 'PATCH':
-        if 'username' in session and 'password' in session:
-            ret = Krb5Creds(session['username'], session['password']).change_password(
-                request.form.get('password_new'))
-            session.pop('username', None)
-            session.pop('password', None)
-            return jsonify(ret)
-        else:
-            return jsonify((-1, "err"))
-
-    if request.method == 'PUT':
-        if 'username' in session and 'password' in session:
-            ret = Krb5Creds(session['username'], session['password']).set_password(
-                request.form.get('password_new'))
-            session.pop('username', None)
-            session.pop('password', None)
-            return jsonify(ret)
-        else:
-            return jsonify((-1, "err"))
+app = Base(__name__)
 
 
-@app.route('/', methods=['GET'])
+@app.route("/action/auth", methods=["POST"])
+def creds_password_post():
+    if "username" in session and "password" in session:
+        pass
+    else:
+        if (
+            (not request.form.get("captcha"))
+            and (not request.form.get("username"))
+            and (not request.form.get("password"))
+        ):
+            session["mess_prev"] = "Не заполнены обязательные поля."
+            return redirect("/")
+
+        if ("captcha_answer" not in session) or (
+            request.form.get("captcha") != session["captcha_answer"]
+        ):
+            session["mess_prev"] = "Не верно введена капча."
+            session.pop("captcha_answer", None)
+            return redirect("/")
+
+        username = app.upn_replace(request.form.get("username"))
+        ret = app.krb5.init_creds_password(
+            username,
+            request.form.get("password"),
+            (
+                request.environ.get("HTTP_X_FORWARDED_FOR")
+                or request.environ["REMOTE_ADDR"]
+            ),
+        )
+        session["mess_prev"] = ret[1]
+
+        if ret[0] in [0, 2]:
+            session["username"] = username
+            session["password"] = request.form.get("password")
+            session["krb5code"] = ret[0]
+
+    return redirect("/")
+
+
+@app.route("/action/change_password", methods=["POST"])
+def creds_password_patch():
+    #    print(json.dumps(dict(session)))
+    if (
+        "username" in session
+        and "password" in session
+        and "method" in request.form
+        and "password_new" in request.form
+    ):
+
+        session["mess_prev"] = (
+            app.krb5.set_password(
+                session["username"],
+                request.form.get("password_new"),
+                (
+                    request.environ.get("HTTP_X_FORWARDED_FOR")
+                    or request.environ["REMOTE_ADDR"]
+                ),
+            )
+            if request.form.get("method") == "put"
+            else app.krb5.change_password(
+                session["username"],
+                session["password"],
+                request.form.get("password_new"),
+                (
+                    request.environ.get("HTTP_X_FORWARDED_FOR")
+                    or request.environ["REMOTE_ADDR"]
+                ),
+            )
+        )
+
+    logout()
+
+    return redirect("/")
+
+
+@app.route("/logout", methods=["GET"])
+def logout():
+    session.pop("username", None)
+    session.pop("password", None)
+    session.pop("krb5code", None)
+    session.pop("captcha_answer", None)
+    return redirect("/")
+
+
+@app.route("/", methods=["GET"])
 def root_page():
-    return render_template('index.html', utc_dt=datetime.utcnow())
+    if "username" in session and "password" in session and "krb5code" in session:
+        return render_template(
+            "edit.html",
+            method="put" if session["krb5code"] == 0 else "patch",
+            mess=session.pop("mess_prev", ""),
+        )
+    else:
+        return render_template(
+            "login.html",
+            mess=session.pop("mess_prev", ""),
+            captcha=app.captcha_generate(),
+        )
 
 
-if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(debug=False, host="0.0.0.0", port=5000)

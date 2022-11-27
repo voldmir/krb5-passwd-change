@@ -1,0 +1,28 @@
+[Unit]
+Description=api for stats suarm app
+
+# Requirements
+Requires=network.target
+
+# Dependency ordering
+After=network.target
+
+[Service]
+TimeoutStartSec=0
+RestartSec=10
+Restart=always
+
+# path to app
+WorkingDirectory=/opt/service/krb5-passwd-change
+# the user that you want to run app by
+User=_puppet
+
+KillSignal=SIGQUIT
+Type=notify
+NotifyAccess=all
+
+# Main process
+ExecStart=/opt/service/uwsgi/uwsgi --ini-paste-logged /opt/service/krb5-passwd-change/uwsgi.ini
+
+[Install]
+WantedBy=multi-user.target

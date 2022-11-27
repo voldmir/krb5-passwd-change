@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/jquery-3.6.1.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.validate.js') }}"></script>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <meta charset="UTF-8">
+    {% block head %}
+    <style>
+        .row {
+            padding-top: 40px;
+        }
+
+        .form-horizontal {
+            background: #fff;
+            padding-bottom: 5px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #020336;
+        }
+
+        .form-horizontal .heading {
+            display: block;
+            font-size: 35px;
+            font-weight: 700;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 30px;
+        }
+
+        .form-horizontal .form-group {
+            padding: 0 40px;
+            margin: 0 0 20px 0;
+            position: relative;
+            height: 45px;
+        }
+
+        .form-horizontal .form-control {
+            background: #ffffff;
+            /*border: none;*/
+            /*border-radius: 20px;*/
+            box-shadow: none;
+            /*padding: 0 20px 0 45px;*/
+            height: 40px;
+            transition: all 0.3s ease 0s;
+        }
+
+        .form-horizontal .form-control:focus {
+            background: #feffcd;
+            box-shadow: none;
+            outline: 0 none;
+            border-color: #66afe9;
+        }
+
+        .form-horizontal .form-control:hover {
+            border-color: #66afe9;
+        }
+
+        .form-horizontal .btn {
+            font-size: 14px;
+            color: #fff;
+            background: #08191f;
+            padding: 10px 25px;
+            border: none;
+            text-transform: capitalize;
+            transition: all 0.5s ease 0s;
+            width: 120px;
+        }
+
+        .btn:hover {
+            background: #083b4d;
+        }
+
+        .error {
+            color: rgb(255, 0, 0);
+            border-color: rgb(255, 0, 0);
+            margin-bottom: 5px;
+            display: block;
+        }
+    </style>
+    {% endblock %}
+    <title>{% block title %}{% endblock %} - Password</title>
+</head>
+
+<body>
+    <div id="content" class="container text-center">
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+
+</html>
